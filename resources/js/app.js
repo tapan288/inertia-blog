@@ -8,7 +8,7 @@ createInertiaApp({
         return pages[`./Pages/${name}.svelte`];
     },
     setup({ el, App, props }) {
-        new App({ target: el, props, hydrate: true });
+        new App({ target: el, props });
     },
     progress: {
         delay: 250,
