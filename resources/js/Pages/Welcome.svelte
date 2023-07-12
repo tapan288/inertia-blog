@@ -8,7 +8,10 @@
     });
 
     const submit = () => {
-        $form.post(route("posts.store"));
+        $form.post(route("posts.store"), {
+            preserveScroll: true,
+            onSuccess: () => $form.reset("content"),
+        });
     };
 
     export let appName = "Laravel",
@@ -31,8 +34,10 @@
                     rows="4"
                     class="w-full px-0 text-sm text-gray-900 bg-white"
                     placeholder="Write a comment..."
-                    required
                 />
+                {#if $form.errors.content}
+                    <div class="text-red-500">{$form.errors.content}</div>
+                {/if}
             </div>
             <div class="flex items-center justify-between px-3 py-2 border-t">
                 <button
