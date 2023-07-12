@@ -1,12 +1,18 @@
 <script>
-    import { Link } from "@inertiajs/svelte";
+    import { Link, useForm } from "@inertiajs/svelte";
 
     let name = "world";
 
+    let form = useForm({
+        content: null,
+    });
+
+    const submit = () => {
+        $form.post(route("posts.store"));
+    };
+
     export let appName = "Laravel",
         posts;
-
-    console.log(posts);
 </script>
 
 <svelte:head>
@@ -15,11 +21,12 @@
 </svelte:head>
 
 <div class="m-5">
-    <form>
+    <form on:submit|preventDefault={submit}>
         <div class="w-full mb-4 border border-gray-200 rounded-lg bg-gray-50">
             <div class="px-4 py-2 bg-white rounded-t-lg">
                 <label for="comment" class="sr-only">Your comment</label>
                 <textarea
+                    bind:value={$form.content}
                     id="comment"
                     rows="4"
                     class="w-full px-0 text-sm text-gray-900 bg-white"

@@ -15,4 +15,13 @@ class PostController extends Controller
             'posts' => $posts,
         ]);
     }
+
+    public function store(Request $request)
+    {
+        Post::create([
+            'content' => $request->content,
+        ]);
+
+        return redirect()->route('posts.index');
+    }
 }
