@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePostRequest;
+use App\Http\Resources\PostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,7 @@ class PostController extends Controller
         $posts = Post::all();
 
         return inertia('Welcome', [
-            'posts' => $posts,
+            'posts' => PostResource::collection($posts),
         ]);
     }
 

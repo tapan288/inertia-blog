@@ -51,9 +51,9 @@
     </form>
 
     <ul>
-        {#each posts as post}
+        {#each posts.data as post}
             <li>
-                {post.content}
+                {post.content} - {post.created_at}
             </li>
         {/each}
     </ul>
