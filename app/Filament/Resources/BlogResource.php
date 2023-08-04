@@ -17,6 +17,7 @@ use Filament\Forms\Components\MarkdownEditor;
 use App\Filament\Resources\BlogResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BlogResource\RelationManagers;
+use App\Filament\Resources\BlogResource\RelationManagers\TagsRelationManager;
 
 class BlogResource extends Resource
 {
@@ -68,7 +69,7 @@ class BlogResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TagsRelationManager::class,
         ];
     }
 
