@@ -8,7 +8,10 @@ use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\MarkdownEditor;
 use App\Filament\Resources\BlogResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BlogResource\RelationManagers;
@@ -22,8 +25,12 @@ class BlogResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
+            ->columns('1')
             ->schema([
-                //
+                TextInput::make('title'),
+                TextInput::make('slug'),
+                TextInput::make('author'),
+                MarkdownEditor::make('content'),
             ]);
     }
 
@@ -31,7 +38,11 @@ class BlogResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('title'),
+                TextColumn::make('slug'),
+                TextColumn::make('author'),
+                TextColumn::make('created_at')
+                    ->dateTime(),
             ])
             ->filters([
                 //
