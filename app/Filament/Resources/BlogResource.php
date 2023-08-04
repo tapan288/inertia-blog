@@ -5,8 +5,10 @@ namespace App\Filament\Resources;
 use Filament\Forms;
 use App\Models\Blog;
 use Filament\Tables;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
@@ -27,7 +29,9 @@ class BlogResource extends Resource
         return $form
             ->columns('1')
             ->schema([
-                TextInput::make('title'),
+                TextInput::make('title')
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug'),
                 TextInput::make('author'),
                 MarkdownEditor::make('content'),

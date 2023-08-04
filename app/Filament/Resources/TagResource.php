@@ -5,15 +5,17 @@ namespace App\Filament\Resources;
 use App\Models\Tag;
 use Filament\Forms;
 use Filament\Tables;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\TagResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\TagResource\RelationManagers;
-use Filament\Tables\Columns\TextColumn;
 
 class TagResource extends Resource
 {
@@ -26,7 +28,10 @@ class TagResource extends Resource
         return $form
             ->columns(1)
             ->schema([
-                TextInput::make('name')->required(),
+                TextInput::make('name')
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug'),
             ]);
     }
