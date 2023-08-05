@@ -1,5 +1,5 @@
 import { router, setupProgress } from "@inertiajs/core";
-import "lodash.isequal";
+import isEqual from "lodash.isequal";
 import createServer from "@inertiajs/core/server";
 function noop() {
 }
@@ -75,8 +75,8 @@ const _boolean_attributes = (
 );
 const boolean_attributes = /* @__PURE__ */ new Set([..._boolean_attributes]);
 const void_element_names = /^(?:area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/;
-function is_void(name2) {
-  return void_element_names.test(name2) || name2.toLowerCase() === "!doctype";
+function is_void(name) {
+  return void_element_names.test(name) || name.toLowerCase() === "!doctype";
 }
 const invalid_attribute_name_character = /[\s'">/=\u{FDD0}-\u{FDEF}\u{FFFE}\u{FFFF}\u{1FFFE}\u{1FFFF}\u{2FFFE}\u{2FFFF}\u{3FFFE}\u{3FFFF}\u{4FFFE}\u{4FFFF}\u{5FFFE}\u{5FFFF}\u{6FFFE}\u{6FFFF}\u{7FFFE}\u{7FFFF}\u{8FFFE}\u{8FFFF}\u{9FFFE}\u{9FFFF}\u{AFFFE}\u{AFFFF}\u{BFFFE}\u{BFFFF}\u{CFFFE}\u{CFFFF}\u{DFFFE}\u{DFFFF}\u{EFFFE}\u{EFFFF}\u{FFFFE}\u{FFFFF}\u{10FFFE}\u{10FFFF}]/u;
 function spread(args, attrs_to_add) {
@@ -102,17 +102,17 @@ function spread(args, attrs_to_add) {
     }
   }
   let str = "";
-  Object.keys(attributes).forEach((name2) => {
-    if (invalid_attribute_name_character.test(name2))
+  Object.keys(attributes).forEach((name) => {
+    if (invalid_attribute_name_character.test(name))
       return;
-    const value = attributes[name2];
+    const value = attributes[name];
     if (value === true)
-      str += " " + name2;
-    else if (boolean_attributes.has(name2.toLowerCase())) {
+      str += " " + name;
+    else if (boolean_attributes.has(name.toLowerCase())) {
       if (value)
-        str += " " + name2;
+        str += " " + name;
     } else if (value != null) {
-      str += ` ${name2}="${value}"`;
+      str += ` ${name}="${value}"`;
     }
   });
   return str;
@@ -121,18 +121,18 @@ function merge_ssr_styles(style_attribute, style_directive) {
   const style_object = {};
   for (const individual_style of style_attribute.split(";")) {
     const colon_index = individual_style.indexOf(":");
-    const name2 = individual_style.slice(0, colon_index).trim();
+    const name = individual_style.slice(0, colon_index).trim();
     const value = individual_style.slice(colon_index + 1).trim();
-    if (!name2)
+    if (!name)
       continue;
-    style_object[name2] = value;
+    style_object[name] = value;
   }
-  for (const name2 in style_directive) {
-    const value = style_directive[name2];
+  for (const name in style_directive) {
+    const value = style_directive[name];
     if (value) {
-      style_object[name2] = value;
+      style_object[name] = value;
     } else {
-      delete style_object[name2];
+      delete style_object[name];
     }
   }
   return style_object;
@@ -175,12 +175,12 @@ function each(items, fn) {
 const missing_component = {
   $$render: () => ""
 };
-function validate_component(component, name2) {
+function validate_component(component, name) {
   if (!component || !component.$$render) {
-    if (name2 === "svelte:component")
-      name2 += " this={...}";
+    if (name === "svelte:component")
+      name += " this={...}";
     throw new Error(
-      `<${name2}> is not a valid SSR component. You may need to review your build config to ensure that dependencies are compiled, rather than imported as pre-compiled modules. Otherwise you may need to fix a <${name2}>.`
+      `<${name}> is not a valid SSR component. You may need to review your build config to ensure that dependencies are compiled, rather than imported as pre-compiled modules. Otherwise you may need to fix a <${name}>.`
     );
   }
   return component;
@@ -222,11 +222,11 @@ function create_ssr_component(fn) {
     $$render
   };
 }
-function add_attribute(name2, value, boolean) {
+function add_attribute(name, value, boolean) {
   if (value == null || boolean && !value)
     return "";
   const assignment = boolean && value === true ? "" : `="${escape$1(value, true)}"`;
-  return ` ${name2}${assignment}`;
+  return ` ${name}${assignment}`;
 }
 function style_object_to_string(style_object) {
   return Object.keys(style_object).filter((key) => style_object[key]).map((key) => `${key}: ${escape_attribute_value(style_object[key])};`).join(" ");
@@ -384,7 +384,7 @@ async function createInertiaApp({ id = "app", resolve, setup, progress = {}, pag
   const isServer = typeof window === "undefined";
   const el = isServer ? null : document.getElementById(id);
   const initialPage = page || JSON.parse(el.dataset.page);
-  const resolveComponent = (name2) => Promise.resolve(resolve(name2));
+  const resolveComponent = (name) => Promise.resolve(resolve(name));
   await resolveComponent(initialPage.component).then((initialComponent) => {
     store.set({
       component: initialComponent,
@@ -471,29 +471,317 @@ const Link = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   })(as)}`;
 });
 derived(store, ($store) => $store.page);
-const Home = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `<h1 data-svelte-h="svelte-186kyn">Hello from Home</h1> ${validate_component(Link, "Link").$$render($$result, { href: route("welcome") }, {}, {
-    default: () => {
-      return `Welcome`;
+function useForm(...args) {
+  const rememberKey = typeof args[0] === "string" ? args[0] : null;
+  const data = (typeof args[0] === "string" ? args[1] : args[0]) || {};
+  const restored = rememberKey ? router.restore(rememberKey) : null;
+  let defaults = data;
+  let cancelToken = null;
+  let recentlySuccessfulTimeoutId = null;
+  let transform = (data2) => data2;
+  const store2 = writable({
+    ...restored ? restored.data : data,
+    isDirty: false,
+    errors: restored ? restored.errors : {},
+    hasErrors: false,
+    progress: null,
+    wasSuccessful: false,
+    recentlySuccessful: false,
+    processing: false,
+    setStore(key, value) {
+      store2.update((store3) => {
+        return Object.assign({}, store3, typeof key === "string" ? { [key]: value } : key);
+      });
+    },
+    data() {
+      return Object.keys(data).reduce((carry, key) => {
+        carry[key] = this[key];
+        return carry;
+      }, {});
+    },
+    transform(callback) {
+      transform = callback;
+      return this;
+    },
+    defaults(key, value) {
+      if (typeof key === "undefined") {
+        defaults = Object.assign(defaults, this.data());
+        return this;
+      }
+      defaults = Object.assign(defaults, value ? { [key]: value } : key);
+      return this;
+    },
+    reset(...fields) {
+      if (fields.length === 0) {
+        this.setStore(defaults);
+      } else {
+        this.setStore(
+          Object.keys(defaults).filter((key) => fields.includes(key)).reduce((carry, key) => {
+            carry[key] = defaults[key];
+            return carry;
+          }, {})
+        );
+      }
+      return this;
+    },
+    setError(key, value) {
+      this.setStore("errors", {
+        ...this.errors,
+        ...value ? { [key]: value } : key
+      });
+      return this;
+    },
+    clearErrors(...fields) {
+      this.setStore(
+        "errors",
+        Object.keys(this.errors).reduce(
+          (carry, field) => ({
+            ...carry,
+            ...fields.length > 0 && !fields.includes(field) ? { [field]: this.errors[field] } : {}
+          }),
+          {}
+        )
+      );
+      return this;
+    },
+    submit(method, url, options = {}) {
+      const data2 = transform(this.data());
+      const _options = {
+        ...options,
+        onCancelToken: (token) => {
+          cancelToken = token;
+          if (options.onCancelToken) {
+            return options.onCancelToken(token);
+          }
+        },
+        onBefore: (visit) => {
+          this.setStore("wasSuccessful", false);
+          this.setStore("recentlySuccessful", false);
+          clearTimeout(recentlySuccessfulTimeoutId);
+          if (options.onBefore) {
+            return options.onBefore(visit);
+          }
+        },
+        onStart: (visit) => {
+          this.setStore("processing", true);
+          if (options.onStart) {
+            return options.onStart(visit);
+          }
+        },
+        onProgress: (event) => {
+          this.setStore("progress", event);
+          if (options.onProgress) {
+            return options.onProgress(event);
+          }
+        },
+        onSuccess: async (page) => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          this.clearErrors();
+          this.setStore("wasSuccessful", true);
+          this.setStore("recentlySuccessful", true);
+          recentlySuccessfulTimeoutId = setTimeout(() => this.setStore("recentlySuccessful", false), 2e3);
+          if (options.onSuccess) {
+            return options.onSuccess(page);
+          }
+        },
+        onError: (errors) => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          this.clearErrors().setError(errors);
+          if (options.onError) {
+            return options.onError(errors);
+          }
+        },
+        onCancel: () => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          if (options.onCancel) {
+            return options.onCancel();
+          }
+        },
+        onFinish: () => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          cancelToken = null;
+          if (options.onFinish) {
+            return options.onFinish();
+          }
+        }
+      };
+      if (method === "delete") {
+        router.delete(url, { ..._options, data: data2 });
+      } else {
+        router[method](url, data2, _options);
+      }
+    },
+    get(url, options) {
+      this.submit("get", url, options);
+    },
+    post(url, options) {
+      this.submit("post", url, options);
+    },
+    put(url, options) {
+      this.submit("put", url, options);
+    },
+    patch(url, options) {
+      this.submit("patch", url, options);
+    },
+    delete(url, options) {
+      this.submit("delete", url, options);
+    },
+    cancel() {
+      if (cancelToken) {
+        cancelToken.cancel();
+      }
     }
-  })}`;
+  });
+  store2.subscribe((form) => {
+    if (form.isDirty === isEqual(form.data(), defaults)) {
+      form.setStore("isDirty", !form.isDirty);
+    }
+    const hasErrors = Object.keys(form.errors).length > 0;
+    if (form.hasErrors !== hasErrors) {
+      form.setStore("hasErrors", !form.hasErrors);
+    }
+    if (rememberKey) {
+      router.remember({ data: form.data(), errors: form.errors }, rememberKey);
+    }
+  });
+  return store2;
+}
+const Index$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { appName, blogs } = $$props;
+  if ($$props.appName === void 0 && $$bindings.appName && appName !== void 0)
+    $$bindings.appName(appName);
+  if ($$props.blogs === void 0 && $$bindings.blogs && blogs !== void 0)
+    $$bindings.blogs(blogs);
+  return `<div class="max-w-2xl mx-auto py-16">${validate_component(Link, "Link").$$render(
+    $$result,
+    {
+      href: "#",
+      class: "inline-block text-2xl font-extrabold hover:text-blue-500 transition-colors duration-100"
+    },
+    {},
+    {
+      default: () => {
+        return `${escape$1(appName)}`;
+      }
+    }
+  )} <main class="mt-16">${each(blogs.data, (blog) => {
+    return `<div class="mb-10"><article class="prose"><h1 class="not-prose">${validate_component(Link, "Link").$$render(
+      $$result,
+      {
+        href: route("blogs.show", blog.slug),
+        class: "hover:text-blue-500 transition-colors duration-100"
+      },
+      {},
+      {
+        default: () => {
+          return `${escape$1(blog.title)} `;
+        }
+      }
+    )}</h1> <div>${escape$1(blog.teaser)}</div></article> <div class="text-sm mt-10">${escape$1(blog.author)} / ${escape$1(blog.created_at)} <ul class="not-prose p-0 list-none flex items-center space-x-1 mt-2"><li class="text-sm">${each(blog.tags, (tag) => {
+      return `${validate_component(Link, "Link").$$render(
+        $$result,
+        {
+          href: route("tags.show", tag.slug),
+          class: "text-blue-500"
+        },
+        {},
+        {
+          default: () => {
+            return `${escape$1(tag.name)} `;
+          }
+        }
+      )}`;
+    })}</li> </ul></div> </div>`;
+  })}</main></div>`;
 });
 const __vite_glob_0_0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  default: Home
+  default: Index$1
 }, Symbol.toStringTag, { value: "Module" }));
-let name = "world";
-const Welcome = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { appName = "Laravel" } = $$props;
+const Show = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { blog, appName } = $$props;
+  if ($$props.blog === void 0 && $$bindings.blog && blog !== void 0)
+    $$bindings.blog(blog);
   if ($$props.appName === void 0 && $$bindings.appName && appName !== void 0)
     $$bindings.appName(appName);
-  return `${$$result.head += `<!-- HEAD_svelte-oztjw9_START -->${$$result.title = `<title>Your page title | ${escape$1(appName)}</title>`, ""}<meta name="description" content="Your page description"><!-- HEAD_svelte-oztjw9_END -->`, ""} <h1>Hello ${escape$1(name)}!</h1> ${validate_component(Link, "Link").$$render($$result, { href: route("home") }, {}, {
-    default: () => {
-      return `Home`;
-    }
-  })}`;
+  return `${$$result.head += `<!-- HEAD_svelte-7s9ywl_START -->${$$result.title = `<title>${escape$1(blog.data.title)} | ${escape$1(appName)}</title>`, ""}<meta name="description"${add_attribute("content", blog.data.teaser, 0)}><!-- HEAD_svelte-7s9ywl_END -->`, ""} <div class="max-w-2xl mx-auto py-16"><article class="prose prose-lg"><h1>${escape$1(blog.data.title)}</h1> <div><!-- HTML_TAG_START -->${blog.data.content}<!-- HTML_TAG_END --></div> <div class="text-sm mt-10">${escape$1(blog.data.author)} / ${escape$1(blog.data.created_at)} <ul class="not-prose p-0 list-none flex items-center space-x-1 mt-2"><li class="text-sm">${each(blog.data.tags, (tag) => {
+    return `${validate_component(Link, "Link").$$render(
+      $$result,
+      {
+        href: route("tags.show", tag.slug),
+        class: "text-blue-500"
+      },
+      {},
+      {
+        default: () => {
+          return `${escape$1(tag.name)} `;
+        }
+      }
+    )}`;
+  })}</li></ul></div></article></div>`;
 });
 const __vite_glob_0_1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Show
+}, Symbol.toStringTag, { value: "Module" }));
+const Index = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { tag, blogs } = $$props;
+  if ($$props.tag === void 0 && $$bindings.tag && tag !== void 0)
+    $$bindings.tag(tag);
+  if ($$props.blogs === void 0 && $$bindings.blogs && blogs !== void 0)
+    $$bindings.blogs(blogs);
+  return `<div class="max-w-2xl mx-auto py-16">Showing all blogs belonging to
+    ${validate_component(Link, "Link").$$render(
+    $$result,
+    {
+      href: "#",
+      class: "inline-block text-2xl font-extrabold hover:text-blue-500 transition-colors duration-100"
+    },
+    {},
+    {
+      default: () => {
+        return `${escape$1(tag.data.name)}`;
+      }
+    }
+  )} <main class="mt-16">${each(blogs.data, (blog) => {
+    return `<div class="mb-10"><article class="prose"><h1 class="not-prose">${validate_component(Link, "Link").$$render(
+      $$result,
+      {
+        href: route("blogs.show", blog.slug),
+        class: "hover:text-blue-500 transition-colors duration-100"
+      },
+      {},
+      {
+        default: () => {
+          return `${escape$1(blog.title)} `;
+        }
+      }
+    )}</h1> <div>${escape$1(blog.teaser)}</div></article> <div class="text-sm mt-10">${escape$1(blog.author)} / ${escape$1(blog.created_at)} <ul class="not-prose p-0 list-none flex items-center space-x-1 mt-2" data-svelte-h="svelte-18xe3o0"><li class="text-sm"><a href="#" class="text-blue-500">Laravel</a></li> </ul></div> </div>`;
+  })}</main></div>`;
+});
+const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Index
+}, Symbol.toStringTag, { value: "Module" }));
+const Welcome = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $form, $$unsubscribe_form;
+  let form = useForm({ content: null });
+  $$unsubscribe_form = subscribe(form, (value) => $form = value);
+  let { appName = "Laravel", posts } = $$props;
+  if ($$props.appName === void 0 && $$bindings.appName && appName !== void 0)
+    $$bindings.appName(appName);
+  if ($$props.posts === void 0 && $$bindings.posts && posts !== void 0)
+    $$bindings.posts(posts);
+  $$unsubscribe_form();
+  return `${$$result.head += `<!-- HEAD_svelte-oztjw9_START -->${$$result.title = `<title>Your page title | ${escape$1(appName)}</title>`, ""}<meta name="description" content="Your page description"><!-- HEAD_svelte-oztjw9_END -->`, ""} <div class="m-5"><form><div class="w-full mb-4 border border-gray-200 rounded-lg bg-gray-50"><div class="px-4 py-2 bg-white rounded-t-lg"><label for="comment" class="sr-only" data-svelte-h="svelte-1g0y8lc">Your comment</label> <textarea id="comment" rows="4" class="w-full px-0 text-sm text-gray-900 bg-white" placeholder="Write a comment...">${escape$1($form.content || "")}</textarea> ${$form.errors.content ? `<div class="text-red-500">${escape$1($form.errors.content)}</div>` : ``}</div> <div class="flex items-center justify-between px-3 py-2 border-t" data-svelte-h="svelte-la4ox8"><button type="submit" class="inline-flex items-center py-2.5 px-4 text-xs font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 hover:bg-blue-800">Post comment</button></div></div></form> <ul>${each(posts.data, (post) => {
+    return `<li>${escape$1(post.content)} - ${escape$1(post.created_at)} </li>`;
+  })}</ul></div>`;
+});
+const __vite_glob_0_3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: Welcome
 }, Symbol.toStringTag, { value: "Module" }));
@@ -968,20 +1256,22 @@ function A(t4, r2, n2, e2) {
   var o2 = new $(t4, r2, n2, e2);
   return t4 ? o2.toString() : o2;
 }
-const Ziggy$1 = { "url": "http://localhost", "port": null, "defaults": {}, "routes": { "sanctum.csrf-cookie": { "uri": "sanctum/csrf-cookie", "methods": ["GET", "HEAD"] }, "ignition.healthCheck": { "uri": "_ignition/health-check", "methods": ["GET", "HEAD"] }, "ignition.executeSolution": { "uri": "_ignition/execute-solution", "methods": ["POST"] }, "ignition.updateConfig": { "uri": "_ignition/update-config", "methods": ["POST"] }, "welcome": { "uri": "/", "methods": ["GET", "HEAD"] }, "home": { "uri": "home", "methods": ["GET", "HEAD"] } } };
+const Ziggy$1 = { "url": "http://localhost", "port": null, "defaults": {}, "routes": { "filament.admin.auth.login": { "uri": "admin/login", "methods": ["GET", "HEAD"] }, "filament.admin.auth.logout": { "uri": "admin/logout", "methods": ["POST"] }, "filament.admin.pages.dashboard": { "uri": "admin", "methods": ["GET", "HEAD"] }, "filament.admin.resources.blogs.index": { "uri": "admin/blogs", "methods": ["GET", "HEAD"] }, "filament.admin.resources.blogs.create": { "uri": "admin/blogs/create", "methods": ["GET", "HEAD"] }, "filament.admin.resources.blogs.edit": { "uri": "admin/blogs/{record}/edit", "methods": ["GET", "HEAD"] }, "filament.admin.resources.tags.index": { "uri": "admin/tags", "methods": ["GET", "HEAD"] }, "filament.admin.resources.tags.create": { "uri": "admin/tags/create", "methods": ["GET", "HEAD"] }, "filament.admin.resources.tags.edit": { "uri": "admin/tags/{record}/edit", "methods": ["GET", "HEAD"] }, "sanctum.csrf-cookie": { "uri": "sanctum/csrf-cookie", "methods": ["GET", "HEAD"] }, "livewire.update": { "uri": "livewire/update", "methods": ["POST"] }, "livewire.upload-file": { "uri": "livewire/upload-file", "methods": ["POST"] }, "livewire.preview-file": { "uri": "livewire/preview-file/{filename}", "methods": ["GET", "HEAD"] }, "ignition.healthCheck": { "uri": "_ignition/health-check", "methods": ["GET", "HEAD"] }, "ignition.executeSolution": { "uri": "_ignition/execute-solution", "methods": ["POST"] }, "ignition.updateConfig": { "uri": "_ignition/update-config", "methods": ["POST"] }, "blogs.index": { "uri": "/", "methods": ["GET", "HEAD"] }, "blogs.show": { "uri": "blog/{blog}", "methods": ["GET", "HEAD"], "bindings": { "blog": "slug" } }, "tags.show": { "uri": "tag/{tag}", "methods": ["GET", "HEAD"], "bindings": { "tag": "slug" } } } };
 if (typeof window !== "undefined" && typeof window.Ziggy !== "undefined") {
   Object.assign(Ziggy$1.routes, window.Ziggy.routes);
 }
-global.route = (name2, params, absolute, config) => A(name2, params, absolute, Ziggy$1);
+global.route = (name, params, absolute, config) => A(name, params, absolute, Ziggy$1);
 createServer(
   (page) => createInertiaApp({
     page,
-    resolve: (name2) => {
+    resolve: (name) => {
       const pages = /* @__PURE__ */ Object.assign({
-        "./Pages/Home.svelte": __vite_glob_0_0,
-        "./Pages/Welcome.svelte": __vite_glob_0_1
+        "./Pages/Blogs/Index.svelte": __vite_glob_0_0,
+        "./Pages/Blogs/Show.svelte": __vite_glob_0_1,
+        "./Pages/Tags/Index.svelte": __vite_glob_0_2,
+        "./Pages/Welcome.svelte": __vite_glob_0_3
       });
-      return pages[`./Pages/${name2}.svelte`];
+      return pages[`./Pages/${name}.svelte`];
     }
   })
 );

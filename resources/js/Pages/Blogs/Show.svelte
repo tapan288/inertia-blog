@@ -1,10 +1,13 @@
 <script>
     import { Link } from "@inertiajs/svelte";
 
-    export let blog;
-
-    console.log(blog.data.tags);
+    export let blog, appName;
 </script>
+
+<svelte:head>
+    <title>{blog.data.title} | {appName}</title>
+    <meta name="description" content={blog.data.teaser} />
+</svelte:head>
 
 <div class="max-w-2xl mx-auto py-16">
     <article class="prose prose-lg">
