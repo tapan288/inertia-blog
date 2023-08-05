@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use Spatie\LaravelMarkdown\MarkdownRenderer;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class BlogResource extends JsonResource
@@ -19,7 +20,7 @@ class BlogResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             'teaser' => $this->teaser,
-            'content' => $this->content,
+            'content' => app(MarkdownRenderer::class)->toHtml($this->content),
             'author' => $this->author,
             'created_at' => $this->created_at->format('Y-m-d'),
         ];
