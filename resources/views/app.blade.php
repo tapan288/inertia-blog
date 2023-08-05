@@ -9,7 +9,7 @@
     @inertiaHead
 </head>
 
-<body>
+<body class="antialiased">
     @inertia
 </body>
 
