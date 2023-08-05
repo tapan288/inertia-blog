@@ -23,6 +23,7 @@ class BlogResource extends JsonResource
             'content' => app(MarkdownRenderer::class)->toHtml($this->content),
             'author' => $this->author,
             'created_at' => $this->created_at->format('Y-m-d'),
+            'tags' => TagResource::collection($this->tags),
         ];
     }
 }

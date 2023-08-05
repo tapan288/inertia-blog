@@ -1,5 +1,9 @@
 <script>
+    import { Link } from "@inertiajs/svelte";
+
     export let blog;
+
+    console.log(blog.data.tags);
 </script>
 
 <div class="max-w-2xl mx-auto py-16">
@@ -12,7 +16,13 @@
                 class="not-prose p-0 list-none flex items-center space-x-1 mt-2"
             >
                 <li class="text-sm">
-                    <a href="#" class="text-blue-500">Laravel</a>
+                    {#each blog.data.tags as tag}
+                        <Link
+                            href={route("tags.show", tag.slug)}
+                            class="text-blue-500"
+                            >{tag.name}
+                        </Link>
+                    {/each}
                 </li>
             </ul>
         </div>
