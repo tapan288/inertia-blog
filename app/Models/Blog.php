@@ -9,7 +9,7 @@ class Blog extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'slug', 'content', 'author'];
+    protected $fillable = ['title', 'slug', 'content', 'author', 'teaser'];
 
     public function tags()
     {

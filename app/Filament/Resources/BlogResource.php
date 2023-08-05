@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,6 +34,7 @@ class BlogResource extends Resource
                 TextInput::make('title')
                     ->live()
                     ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                Textarea::make('teaser'),
                 TextInput::make('slug'),
                 TextInput::make('author'),
                 MarkdownEditor::make('content'),
@@ -44,7 +46,7 @@ class BlogResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('title'),
-                TextColumn::make('slug'),
+                TextColumn::make('teaser'),
                 TextColumn::make('author'),
                 TextColumn::make('created_at')
                     ->dateTime(),
