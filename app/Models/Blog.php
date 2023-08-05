@@ -11,6 +11,11 @@ class Blog extends Model
 
     protected $fillable = ['title', 'slug', 'content', 'author', 'teaser'];
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class);

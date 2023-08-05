@@ -12,7 +12,7 @@
         </Link>
     <main class="mt-16">
         {#each blogs.data as blog}
-        <div class="">
+        <div class="mb-10">
             <article class="prose">
                 <h1 class="not-prose">
                     <Link
